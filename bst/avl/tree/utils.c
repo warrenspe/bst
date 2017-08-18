@@ -1,7 +1,7 @@
 void balance_avl_tree(Node *curr, char delta) {
 /*  Recursively balances the tree from a given node and upwards all the way (if necessary) to the root node.
     Performs whichever balances are necessary.  This function should not be used directly.  Instead use the macros:
-    BALANCE_ADDED(parent_of_added_node), BALANCE_REMOVED(parent_of_removed_node).
+    BALANCE_ADDED(tree ,parent_of_added_node), BALANCE_REMOVED(tree, parent_of_removed_node).
 
     Inputs: curr  - The node to begin the balancing from; the parent of a node which was added/removed.
             delta - The change that was made to the tree.  One of ADDED, REMOVED

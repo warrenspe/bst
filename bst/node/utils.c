@@ -14,7 +14,7 @@ Node *new_node(PyObject *key, PyObject *data) {
 
     PyErr_Clear();
     PyObject_Init((PyObject *)node, &NodeType);
-    if (PyErr_Occurred() == NULL) {
+    if (PyErr_Occurred() != NULL) {
         PyObject_Del(node);
         return NULL;
     }

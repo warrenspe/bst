@@ -17,19 +17,17 @@
 #define ROTATE_LEFT(node) ROTATE(node, LEFT)
 #define ROTATE_RIGHT(node) ROTATE(node, RIGHT)
 
-#define CTX_INIT_ITERATE(_root) {.root = _root, .curr = _root, .last = _root, .last_action = DOWN}
-
 
 // AVLNode Macros
 #define GET_BALANCE(node) (node->_prop)
 #define SET_BALANCE(node, val) node->_prop = val
 
-#define BALANCE_ADDED(node) _balance_tree(node, -1)
-#define BALANCE_REMOVED(node) _balance_tree(node, 1)
+#define BALANCE_ADDED(tree, node) balance_tree(tree, node, ADDED)
+#define BALANCE_REMOVED(tree, node) balance_tree(tree, node, REMOVED)
 
 // Generic Tree Macros
 #define GET_ROOT(tree) (tree->root)
-#define SET_ROOT(tree, root) tree->root = root
+#define SET_ROOT(tree, rootnode) tree->root = rootnode
 
-#define TREE_DESCENT_DIRECTION(treenode, search_key) _key_descent_compare(treenode, search_key)
-#define TREE_BOUND_COMPARE(treenode, lower, upper) _key_bound_compare(treenode, lower, upper)
+#define TREE_DESCENT_DIRECTION(treenode, search_key) _key_descent_compare(GET_KEY(treenode), search_key)
+#define TREE_BOUND_COMPARE(treenode, lower, upper) _key_bound_compare(GET_KEY(treenode), lower, upper)

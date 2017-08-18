@@ -7,6 +7,7 @@ static int tree_init(Tree *self) {
 */
 
     self->root = NULL;
+    self->count = 0;
     return 0;
 }
 

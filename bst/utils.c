@@ -1,23 +1,23 @@
-char _key_descent_compare(Node *node, PyObject *key) {
+char _key_descent_compare(PyObject *first, PyObject *second) {
 /*  Compares the given keys to determine which side the second key would lie relative to the first.
     This function shouldn't be used directly; the macro TREE_DESCENT_DIRECTION(node, key) should be used instead.
 
-    Inputs: node - The node to compare the key against.
-            key  - The key to compare against the node.
+    Inputs: first  - The first key to compare.
+            second - The second key to compare.
 
-    Outputs: LEFT  if node.key >= key
-             RIGHT if node.key < key
+    Outputs: LEFT  if first >= second
+             RIGHT if first < second
              -1    if an error occurred.
 */
 
-    return PyObject_RichCompareBool(GET_KEY(a), key, Py_LT);
+    return PyObject_RichCompareBool(first, second, Py_LT);
 }
 
-char _key_bound_compare(Node *node, PyObject *lower, PyObject *upper) {
+char _key_bound_compare(PyObject *key, PyObject *lower, PyObject *upper) {
 /*  Compares the given key with the two bounds to determine if it satifies both.  A bound of NULL will be interpreted
     as being unbound in that direction.
 
-    Inputs: node  - The node whose key should be compared against the bounds.
+    Inputs: key   - The key which should be compared against the bounds.
             lower - The lower bound to compare the key against.
             upper - The upper bound to compare the key against.
 
@@ -29,20 +29,16 @@ char _key_bound_compare(Node *node, PyObject *lower, PyObject *upper) {
 
     char status;
 
-    // Determine if the node satisfies the lower bound
-    if (lower == NULL) {
-        status = 1;
-    } else {
-        status = PyObject_RichCompareBool(GET_KEY(node), lower, Py_GE);
+    // Determine if the key satisfies the lower bound
+    if (lower != NULL) {
+        status = PyObject_RichCompareBool(key, lower, Py_GE);
         if (status != 1)
             return status;
     }
 
-    // Determine if the node satisfies the upper bound
-    if (upper == NULL) {
-        status = 1;
-    } else {
-        status = PyObject_RichCompareBool(GET_KEY(node), upper, Py_GT);
+    // Determine if the key satisfies the upper bound
+    if (upper != NULL) {
+        status = PyObject_RichCompareBool(key, upper, Py_GT);
         if (status != 0)
             return status;
     }

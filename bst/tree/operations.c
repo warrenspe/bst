@@ -33,11 +33,18 @@ PyObject *tree_add_node(Tree *self, PyObject *args, PyObject *kwargs) {
     if ((node = new_node(key, data)) == NULL)
         return NULL;
 
+
+    // Edge case - if the tree is empty; this new node is our new root.
+    if (GET_ROOT(self) == NULL) {
+        SET_ROOT(self, node);
+
     // Add the node to its appropriate slot
-    SET_CHILD(parent, node, dir);
+    } else {
+        SET_CHILD(parent, node, dir);
+    }
 
     // Rebalance the tree
-    balance_tree(self, parent, ADDED);
+    BALANCE_ADDED(self, parent);
 
     // Increment the tree's node count
     self->count++;
@@ -54,9 +61,9 @@ PyObject *tree_get_node(Tree *self, PyObject *args, PyObject *kwargs) {
 
     Accepts one positional/keyword arguments:
         Required:
-            key - The PyObject of the node to find and return.
+            key - The PyObject of the key contained by the node we are to find and return.
 
-    Outputs: PyNone.
+    Outputs: Py_None.
 */
 
     PyObject *key;
@@ -77,7 +84,7 @@ PyObject *tree_get_node(Tree *self, PyObject *args, PyObject *kwargs) {
         return NULL;
 
     if (status == 1)
-        return node;
+        return (PyObject *)node;
 
     Py_RETURN_NONE;
 }
@@ -91,13 +98,25 @@ PyObject *tree_get_range(Tree *self, PyObject *args, PyObject *kwargs) {
 
     Accepts one positional/keyword arguments:
         Required:
-            key - The PyObject of the node to find and return.
+            lower - The lower bound on the lookup key, or PyNone.
+            upper - The upper bound on the lookup key, or PyNone.
 
-    Outputs: PyNone.
+    Outputs: A PyList containing the nodes in the tree which satisfy the given bounds.
 */
 
-    // TODO implement once we have iterate; find node which is in range or something and iterate over it
+    PyObject *lower,
+             *upper;
+    static char *kwlist[] = {"lower", "upper", NULL};
 
-    // Validate that lower < upper or one isn't defined
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO", kwlist, &upper, &lower))
+        return NULL;
+
+    // Convert Py_None -> NULL
+    if (lower == Py_None)
+        lower = NULL;
+    if (upper == Py_None)
+        upper = NULL;
+
+    return iterate_range(self, lower, upper);
 
 }

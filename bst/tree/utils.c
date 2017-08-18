@@ -1,4 +1,4 @@
-void balance_tree(Tree *tree, node *changed, char delta) {
+void balance_tree(Tree *tree, Node *changed, char delta) {
 /*  Balances the given tree using whichever balancing technique is appropriate for the type of tree.
 
     Inputs: tree    - The tree to balance.
@@ -6,16 +6,14 @@ void balance_tree(Tree *tree, node *changed, char delta) {
             delta   - The change that was made to the tree.  One of ADDED, REMOVED.
 */
 
-    Node *root = GET_ROOT(tree),
+    Node *root = GET_ROOT(tree);
 
     // If the tree is empty .. there's nothing to balance
     if (root == NULL)
         return;
 
-    switch (((PyObject *) tree)->ob_type) {
-        case &AVLTreeType:
-            balance_avl_tree(changed, delta);
-            break;
+    if (Py_TYPE(tree) == &AVLTreeType) {
+        balance_avl_tree(changed, delta);
     }
 
     // Check if the root node has a non-NULL parent.  If so, it was rebalenced down.  Find the new root node.
@@ -57,55 +55,6 @@ Node *descend_tree(Tree *tree, PyObject *key, char *dir) {
     return current;
 }
 
-static Node *_iterate_children(_itr_ctx *context, char prevent) {
-/*  Iterates over all of the children, in order, below a subtree identified by the given root node.
-
-    Note: To initialize the context, use the macro: _CTX_ITERATE_INIT(root_node)
-
-    Inputs: context - A pointer to an _itr_ctx object which will be used to store context of our iteration.
-            prevent - A char which can be used to prevent descent down a particular subtree of the current node.
-                      One of: -1: No override; LEFT: Prevent iteration down left; RIGHT: Prevent iteration down right
-
-    Outputs: A Node object of the next node in the iteration, or NULL if no more nodes remain.
-*/
-
-    char dir = UP;
-
-    // If we last iterated upwards, we either just came from the left or right subtree.
-    if (context->last_dir == UP) {
-        // We only consider descending down the right subtree if we just came up from the left subchild,
-        // right isn't NULL, and we weren't prevented from iterating down the right branch
-        // Otherwise, if we came up from the right or one of the above is false, we will continue iteration upwards.
-        if (context->last == GET_LEFT(context->curr) && prevent != RIGHT && GET_RIGHT(context->curr) != NULL) {
-            dir = RIGHT;
-
-    // Else we last iterated downwards from curr's parent.
-    } else {
-        // If we're allowed to, check the current node's left subtree
-        if (GET_LEFT(context->curr) != NULL && prevent != LEFT) {
-            dir = LEFT;
-
-        // Otherwise check the current node's right subtree
-        } else if (GET_RIGHT(context->curr) != NULL && prevent != RIGHT) {
-            dir = RIGHT;
-
-        // Otherwise, we have no choice but to iterate back upwards, which is what dir is already set to.
-        }
-    }
-
-    // Validate that we are not about to transition above our root node, and that wherever we're about to transition
-    // exists. If one of these is about to happen, return NULL to signify end of iteration.
-    if ((dir == UP && context->curr == context->root))
-        return NULL;
-
-    // Set curr, last, and last_action appropriately
-    context->last = context->curr;
-    context->curr = GET_LINK(context->curr, dir);
-    context->last_dir = dir;
-
-    return context->curr;
-}
-
 
 PyObject *iterate_range(Tree *tree, PyObject *lower, PyObject *upper) {
 /*  Iterates over the tree finding all nodes which fall between the two given ranges.
@@ -117,14 +66,14 @@ PyObject *iterate_range(Tree *tree, PyObject *lower, PyObject *upper) {
     Outputs: A PyList containing the nodes included in the iteration.
 */
 
-    char prevent_side,
-         bound_check;
+    char bound_check,
+         last_dir = LEFT;
     Node *root = GET_ROOT(tree),
-         *current;
+         *current,
+         *last;
     PyObject *list;
-    _itr_ctx iteration_context;
 
-    // Find the first node in the range
+    // Find the first node in the range; this will be the root of our iteration
     while (root != NULL) {
         switch(TREE_BOUND_COMPARE(root, lower, upper)) {
             // If an error occurred
@@ -148,33 +97,55 @@ PyObject *iterate_range(Tree *tree, PyObject *lower, PyObject *upper) {
         break;
     }
 
-    iteration_context = CTX_INIT_ITERATE(root);
     current = root;
+    last = root;
     if ((list = PyList_New(0)) == NULL)
         return NULL;
 
-    // Add the nodes within the bounds below this node to the list
-    while (current != NULL) {
-        prevent_side = -1;
-        // Determine if the current node we're looking at it is outside the given bounds
-        bound_check = TREE_BOUND_COMPARE(current, lower, upper);
-        // Check if an error occurred
-        if (bound_check == -1) {
-            Py_DECREF(list);
-            return NULL;
+    while(1) {
+        // If the left subtree is present and we didn't just iterate upwards to this node, test if we can iterate left
+        if (GET_LEFT(current) != NULL && last_dir != UP) {
+            if ((bound_check = TREE_BOUND_COMPARE(GET_LEFT(current), lower, upper)) == -1) {
+                // If an error occurred
+                Py_DECREF(list);
+                return NULL;
 
-        // If the current node is to the left of the bounds
-
-        // Check if current is within the bounds
-        } else if (bound_check == 2) {
-
-        // Otherwise, force the iterator to ascend up a level - as if 
+            // If the left node satisfies the given bounds, descend!
+            } else if (bound_check == 2) {
+                last = current;
+                current = GET_LEFT(current);
+                last_dir = LEFT;
+                continue;
+            }
         }
-        // If it is (bound_check != 2), then force the iterator to ascend up a level
-        force_up = (bound_check != 2);
-        
 
-        current = _iterate_children(iteration_context, force_up)
+        // Otherwise we can't descend left.  Add this node to the list if we didn't just iterate upwards from the right
+        if (last_dir != UP || GET_RIGHT(current) != last)
+            PyList_Append(list, (PyObject *) current);
+
+        // If the right subtree is present and we didn't just iterate upwards from it, test if we can iterate right
+        if (GET_RIGHT(current) != NULL && GET_RIGHT(current) != last) {
+            if ((bound_check = TREE_BOUND_COMPARE(GET_RIGHT(current), lower, upper)) == -1) {
+                // If an error occurred
+                Py_DECREF(list);
+                return NULL;
+
+            // If the right node satisfies the given bounds, descend!
+            } else if (bound_check == 2) {
+                last = current;
+                current = GET_RIGHT(current);
+                last_dir = RIGHT;
+                continue;
+            }
+        }
+
+        // We can't descend at all.  Ascend, if we aren't the root node.
+        if (current == root)
+            return list;
+
+        last = current;
+        current = GET_PARENT(current);
+        last_dir = UP;
     }
 
     return list;
