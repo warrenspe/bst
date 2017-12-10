@@ -52,6 +52,38 @@ PyObject *tree_add_node(Tree *self, PyObject *args, PyObject *kwargs) {
     Py_RETURN_NONE;
 }
 
+PyObject *tree_remove_node(Tree *self, PyObject *args) {
+/*  Remove a node from this tree.
+
+    Inputs: self   - The Tree to remove the node from.
+            args   - A PyTuple containing arguments (see below).
+
+    Accepts one positional/keyword arguments:
+        Required:
+            keyOrNode - Either the node to remove from the Tree, or the key of a node to remove.
+
+    Outputs: The node removed from the tree.
+*/
+
+    PyObject *nodeOrKey;
+    char error;
+
+    if (!PyArg_ParseTuple(&nodeOrKey, "O"))
+        return NULL;
+
+    // If we weren't given a node, we need to find the node given its key.
+    if (Py_TYPE(nodeOrKey) != &NodeType) {
+        if ((nodeOrKey = descend_tree(self, nodeOrKey, &error)) == NULL && error == -1) {
+           return NULL;
+        }
+    }
+
+    // Rebalance the tree
+    BALANCE_REMOVED(self, parent);
+
+    return nodeOrKey;
+}
+
 PyObject *tree_get_node(Tree *self, PyObject *args, PyObject *kwargs) {
 /*  Retrieves a node from the tree.
 

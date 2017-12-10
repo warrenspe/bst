@@ -13,11 +13,13 @@ static PyMemberDef TreeMembers[] = {
 
 // TODO see about formatting the pydocstrs
 static PyMethodDef TreeMethods[] = {
-    {"add", (PyCFunction)tree_add_node, METH_VARARGS,
+    {"add", (PyCFunction)tree_add_node, METH_KEYWORDS,
         PyDoc_STR("Adds a node to this table.")},
-    {"get", (PyCFunction)tree_get_node, METH_VARARGS,
+    {"remove", (PyCFunction)tree_add_node, METH_VARARGS,
+        PyDoc_STR("Removes a node from this table.")},
+    {"get", (PyCFunction)tree_get_node, METH_KEYWORDS,
         PyDoc_STR("Retrieves a node from this table.")},
-    {"get_range", (PyCFunction)tree_get_range, METH_VARARGS,
+    {"get_range", (PyCFunction)tree_get_range, METH_KEYWORDS,
         PyDoc_STR("Retrieves nodes from this table between two optional bounds.")},
     {NULL}  // Sentinel
 };

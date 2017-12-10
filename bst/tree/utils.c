@@ -1,3 +1,44 @@
+unsigned short add_node(Tree *tree, Node *node) {
+/*  Add a node to the tree.
+
+    Inputs: tree   - The tree to add the node to.
+            node   - A PyTuple containing arguments (see below).
+
+    Outputs: 0 if successful.
+             Sets an appropriate error message and returns a number > 0 if unsuccessful.
+*/
+
+    PyObject *key,
+             *data;
+
+    Node *parent;
+    char dir;
+
+    // Edge case - if the tree is empty; this new node is our new root.
+    if (tree->root == NULL) {
+        tree->root = node;
+
+    // Get the parent node of the node to add
+    if ((parent = descend_tree(self, key, &dir)) == NULL && dir == -1)
+        return NULL;
+
+    // Add the node to its appropriate slot
+    } else {
+        SET_CHILD(parent, node, dir);
+    }
+
+    // Rebalance the tree
+    BALANCE_ADDED(self, parent);
+
+    // Increment the tree's node count
+    self->count++;
+
+    Py_RETURN_NONE;
+}
+
+
+unsigned short remove_node(); //TODO - also when removing find greatest left most or smallest right most node and flip
+
 void balance_tree(Tree *tree, Node *changed, char delta) {
 /*  Balances the given tree using whichever balancing technique is appropriate for the type of tree.
 
@@ -6,7 +47,7 @@ void balance_tree(Tree *tree, Node *changed, char delta) {
             delta   - The change that was made to the tree.  One of ADDED, REMOVED.
 */
 
-    Node *root = GET_ROOT(tree);
+    Node *root = tree->root;
 
     // If the tree is empty .. there's nothing to balance
     if (root == NULL)
@@ -20,7 +61,7 @@ void balance_tree(Tree *tree, Node *changed, char delta) {
     while (GET_PARENT(root) != NULL)
         root = GET_PARENT(root);
 
-    SET_ROOT(tree, root);
+    tree->root = root;
 }
 
 
